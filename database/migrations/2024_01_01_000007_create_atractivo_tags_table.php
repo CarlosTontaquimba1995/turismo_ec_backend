@@ -12,7 +12,6 @@ return new class extends Migration
             $table->foreignId('atractivo_id')->constrained('atractivos')->onDelete('cascade');
             $table->foreignId('tag_id')->constrained('tags')->onDelete('cascade');
             $table->primary(['atractivo_id', 'tag_id']);
-            $table->auditable();
         });
     }
 
