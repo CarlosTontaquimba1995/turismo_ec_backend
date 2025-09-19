@@ -3,12 +3,27 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class AuthService
 {
+    /**
+     * @var UserRepositoryInterface
+     */
+    protected $userRepository;
+
+    /**
+     * AuthService constructor.
+     *
+     * @param UserRepositoryInterface $userRepository
+     */
+    public function __construct(UserRepositoryInterface $userRepository)
+    {
+        $this->userRepository = $userRepository;
+    }
+
     /**
      * Register a new user
      *
@@ -17,10 +32,10 @@ class AuthService
      */
     public function register(array $data): array
     {
-        $user = User::create([
+        $user = $this->userRepository->create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'password' => Hash::make($data['password']), // Hash password in service layer
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -39,21 +54,46 @@ class AuthService
      * @return array
      * @throws ValidationException
      */
+    /**
+     * Create a refresh token for the user
+     *
+     * @param User $user
+     * @return string
+     */
+    protected function createRefreshToken(User $user): string
+    {
+        return $user->createToken(
+            'refresh_token',
+            ['*'],
+            now()->addDays(30) // Refresh token expires in 30 days
+        )->plainTextToken;
+    }
+
     public function login(array $credentials): array
     {
-        if (!Auth::attempt($credentials)) {
+        $user = $this->userRepository->findByEmail($credentials['email']);
+
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
-        $user = Auth::user();
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Revoke existing tokens
+        $this->userRepository->revokeTokens($user);
+
+        // Create access token (expires in 1 hour by default)
+        $accessToken = $user->createToken('auth_token')->plainTextToken;
+
+        // Create refresh token (expires in 30 days)
+        $refreshToken = $this->createRefreshToken($user);
 
         return [
             'user' => $this->formatUser($user),
-            'access_token' => $token,
+            'access_token' => $accessToken,
+            'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
+            'expires_in' => 3600, // 1 hour in seconds
         ];
     }
 
@@ -65,7 +105,7 @@ class AuthService
      */
     public function logout(User $user): void
     {
-        $user->currentAccessToken()->delete();
+        $this->userRepository->revokeTokens($user);
     }
 
     /**
@@ -76,15 +116,25 @@ class AuthService
      */
     public function refreshToken(User $user): array
     {
-        // Revoke current token
-        $user->currentAccessToken()->delete();
-        
-        // Create new token
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Get the current token
+        $currentToken = $user->currentAccessToken();
+
+        // If it's a refresh token, revoke it after use
+        if ($currentToken && $currentToken->name === 'refresh_token') {
+            $user->tokens()->where('id', $currentToken->id)->delete();
+        }
+
+        // Create new access token
+        $accessToken = $user->createToken('auth_token')->plainTextToken;
+
+        // Create new refresh token
+        $refreshToken = $this->createRefreshToken($user);
 
         return [
-            'access_token' => $token,
+            'access_token' => $accessToken,
+            'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
+            'expires_in' => 3600, // 1 hour in seconds
         ];
     }
 
@@ -94,7 +144,7 @@ class AuthService
      * @param User $user
      * @return array
      */
-    protected function formatUser(User $user): array
+    public function formatUser(User $user): array
     {
         return [
             'id' => $user->id,

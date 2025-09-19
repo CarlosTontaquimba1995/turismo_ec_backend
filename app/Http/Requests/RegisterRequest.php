@@ -4,6 +4,41 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
+use OpenApi\Annotations as OA;
+
+/**
+ * @OA\Schema(
+ *     schema="RegisterRequest",
+ *     required={"name", "email", "password", "password_confirmation"},
+ *     @OA\Property(
+ *         property="name",
+ *         type="string",
+ *         description="User's full name",
+ *         example="John Doe"
+ *     ),
+ *     @OA\Property(
+ *         property="email",
+ *         type="string",
+ *         format="email",
+ *         description="User's email address",
+ *         example="user@example.com"
+ *     ),
+ *     @OA\Property(
+ *         property="password",
+ *         type="string",
+ *         format="password",
+ *         description="User's password (min 8 characters)",
+ *         example="password123"
+ *     ),
+ *     @OA\Property(
+ *         property="password_confirmation",
+ *         type="string",
+ *         format="password",
+ *         description="Confirm password",
+ *         example="password123"
+ *     )
+ * )
+ */
 
 class RegisterRequest extends FormRequest
 {

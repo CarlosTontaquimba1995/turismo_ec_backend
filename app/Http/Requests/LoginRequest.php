@@ -3,6 +3,26 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use OpenApi\Annotations as OA;
+
+/**
+ * @OA\Schema(
+ *     schema="LoginRequest",
+ *     required={"email", "password"},
+ *     @OA\Property(
+ *         property="email",
+ *         type="string",
+ *         format="email",
+ *         description="User's email address"
+ *     ),
+ *     @OA\Property(
+ *         property="password",
+ *         type="string",
+ *         format="password",
+ *         description="User's password"
+ *     )
+ * )
+ */
 
 class LoginRequest extends FormRequest
 {

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Fuente extends BaseModel
 {
     protected $table = 'fuentes';
-    protected $fillable = ['nombre', 'url', 'fecha_obtenido', 'status'];
+    protected $fillable = ['nombre', 'url', 'fecha_obtenido'];
     protected $dates = ['fecha_obtenido'];
 
     public function atractivos(): HasMany

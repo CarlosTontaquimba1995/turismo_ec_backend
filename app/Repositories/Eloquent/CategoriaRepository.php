@@ -6,11 +6,53 @@ use App\Models\Categoria;
 use App\Repositories\Interfaces\CategoriaRepositoryInterface;
 use Illuminate\Support\Collection;
 
-class CategoriaRepository extends BaseRepository implements CategoriaRepositoryInterface
+class CategoriaRepository implements CategoriaRepositoryInterface
 {
+    protected Categoria $model;
+
     public function __construct(Categoria $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
+    }
+
+    public function all(): Collection
+    {
+        return $this->model->all();
+    }
+
+    public function find(int $id): ?Categoria
+    {
+        return $this->model->find($id);
+    }
+
+    public function create(array $data): Categoria
+    {
+        $categoria = new Categoria($data);
+        $categoria->save();
+        return $categoria;
+    }
+
+    public function update(int $id, array $data): ?Categoria
+    {
+        $categoria = $this->find($id);
+        
+        if (!$categoria) {
+            return null;
+        }
+
+        $categoria->update($data);
+        return $categoria->fresh();
+    }
+
+    public function delete(int $id): bool
+    {
+        $categoria = $this->find($id);
+        
+        if (!$categoria) {
+            return false;
+        }
+
+        return $categoria->delete();
     }
 
     public function getActiveCategorias(): Collection

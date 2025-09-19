@@ -6,11 +6,50 @@ use App\Models\Atractivo;
 use App\Repositories\Interfaces\AtractivoRepositoryInterface;
 use Illuminate\Support\Collection;
 
-class AtractivoRepository extends BaseRepository implements AtractivoRepositoryInterface
+class AtractivoRepository implements AtractivoRepositoryInterface
 {
+    protected $model;
+
     public function __construct(Atractivo $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
+    }
+
+    public function all(array $columns = ['*'], array $relations = []): Collection
+    {
+        return $this->model->with($relations)->get($columns);
+    }
+
+    public function findById(int $modelId, array $columns = ['*'], array $relations = []): ?Atractivo
+    {
+        return $this->model->with($relations)->select($columns)->find($modelId);
+    }
+
+    public function create(array $payload): Atractivo
+    {
+        return $this->model->create($payload);
+    }
+
+    public function update(int $modelId, array $payload): bool
+    {
+        $model = $this->findById($modelId);
+        
+        if (!$model) {
+            return false;
+        }
+        
+        return $model->update($payload);
+    }
+
+    public function deleteById(int $modelId): bool
+    {
+        $model = $this->findById($modelId);
+        
+        if (!$model) {
+            return false;
+        }
+        
+        return $model->delete();
     }
 
     public function getActiveAtractivos(): Collection
